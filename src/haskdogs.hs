@@ -80,40 +80,53 @@ checkapp appname = do
 -- Directory to unpack sources into
 sourcedir = glob "~" >>= return . (</> ".haskdogs") . head
 
-gentags dirs flags = do
+data Input = Dirs [FilePath] | Files [FilePath]
+  deriving (Show)
+
+gentags inp flags = do
+    putStrLn (show inp)
     checkapp "cabal"
     checkapp "ghc-pkg"
     checkapp "hasktags"
     d <- sourcedir
     testdir d (return ()) (run ("mkdir",["-p",d]))
     files <- bracketCD "." $ do
-      ss_local <- findSources dirs
+      ss_local <- (case inp of
+                    Dirs dirs -> findSources dirs
+                    Files files -> return files)
       when (null ss_local) $ do
-        fail $ "haskdogs were not able to find any sources in " ++ (unwords dirs)
+        fail $ "haskdogs were not able to find any sources in " ++ (show inp)
       ss_l1deps <- findImports ss_local >>= inames2modules >>= unpackModules >>= findSources
       return $ ss_local ++ ss_l1deps
-    runIO $ ("hasktags", flags ++ files)
+    runIO $ echo (unlines files) -|- ("hasktags", flags ++ ["STDIN"])
+    -- runIO $ ("hasktags", flags ++ files)
 
 help = do
     eprint "haskdogs: generates tags file for haskell project directory"
     eprint "Usage:"
-    eprint "    haskdogs [-d (FILE|'-')] [FLAGS]"
+    eprint "    haskdogs [-d (FILE|'-') | -f (FILE|'-')] [FLAGS]"
     eprint "        FLAGS will be passed to hasktags as-is followed by"
     eprint "        a list of files. Defaults to -c -x."
+    eprint "        -f sets the list of FILES to search for sources"
+    eprint "        -d sets the list of DIRS to search for sources"
     return ()
 
 defflags = ["-c", "-x"]
 
-amain [] = gentags ["."] defflags
+amain [] = gentags (Dirs ["."]) defflags
+amain ("-f" : filefile : flags) = do
+    file <- if (filefile=="-") then return stdin else openFile filefile ReadMode
+    files <- lines <$> hGetContents file
+    gentags (Files files) (if null flags then defflags else flags)
 amain ("-d" : dirfile : flags) = do
     file <- if (dirfile=="-") then return stdin else openFile dirfile ReadMode
     dirs <- lines <$> hGetContents file
-    gentags dirs (if null flags then defflags else flags)
+    gentags (Dirs dirs) (if null flags then defflags else flags)
 amain flags 
   | "-h"     `elem` flags = help
   | "--help" `elem` flags = help
   | "-?"     `elem` flags = help
-  | otherwise = gentags ["."] flags
+  | otherwise = gentags (Dirs ["."]) flags
 
 main :: IO()
 main = getArgs >>= amain
