@@ -84,7 +84,6 @@ data Input = Dirs [FilePath] | Files [FilePath]
   deriving (Show)
 
 gentags inp flags = do
-    putStrLn (show inp)
     checkapp "cabal"
     checkapp "ghc-pkg"
     checkapp "hasktags"
@@ -99,7 +98,6 @@ gentags inp flags = do
       ss_l1deps <- findImports ss_local >>= inames2modules >>= unpackModules >>= findSources
       return $ ss_local ++ ss_l1deps
     runIO $ echo (unlines files) -|- ("hasktags", flags ++ ["STDIN"])
-    -- runIO $ ("hasktags", flags ++ files)
 
 help = do
     eprint "haskdogs: generates tags file for haskell project directory"
