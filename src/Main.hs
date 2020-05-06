@@ -23,7 +23,7 @@ import Options.Applicative
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import qualified Data.Set as Set
-import qualified Paths_haskdogs as Paths
+--import qualified Paths_haskdogs as Paths
 
 {-
   ___        _   _
@@ -51,7 +51,7 @@ data Opts = Opts {
 data Tristate = ON | OFF | AUTO
   deriving(Eq, Ord, Show, Read)
 
-defHasktagsArgs = words "-c -x"
+defHasktagsArgs = words "-e -x"
 
 optsParser :: FilePath -> Parser Opts
 optsParser def_deps_dir = Opts
@@ -109,11 +109,11 @@ optsParser def_deps_dir = Opts
 exename :: String
 exename = "haskdogs"
 
-versionParser :: Parser (a -> a)
-versionParser = infoOption (exename <> " version " <> showVersion Paths.version)
-                     (long "version" <> help "Show version number")
+-- versionParser :: Parser (a -> a)
+-- versionParser = infoOption (exename <> " version " <> showVersion Paths.version)
+--                      (long "version" <> help "Show version number")
 
-opts def_deps_dir = info (helper <*> versionParser <*> optsParser def_deps_dir)
+opts def_deps_dir = info (helper <*> {-versionParser <*>-} optsParser def_deps_dir)
   ( fullDesc <> header (exename <> " - Recursive hasktags-based TAGS generator for a Haskell project" ))
 
 {-
@@ -283,7 +283,7 @@ main = do
         else do
           let sfiles = Text.unlines $ Set.toList files
           vprint (unpack sfiles)
-          runp "hasktags" ((if null cli_hasktags_args then defHasktagsArgs else cli_hasktags_args) <> ["STDIN"]) sfiles
+          runp "hasktags" ((if null cli_hasktags_args then defHasktagsArgs else cli_hasktags_args) <> ["STDIN"] ) sfiles
           putStrLn "\nSuccess"
 
   {- _real_main_ -}
